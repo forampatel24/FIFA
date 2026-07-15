@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+outputs/*
+!outputs/.gitkeep
+videos/*
+!videos/.gitkeep
+models/*
+!models/.gitkeep
+*.egg-info/
+yolov8x.pt
