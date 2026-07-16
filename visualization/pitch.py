@@ -17,7 +17,6 @@ TEAM_COLORS = {
 }
 
 BALL_COLOR = "#000000"
-REFEREE_COLOR = "#ffff00"
 
 
 class PitchVisualizer:
@@ -43,31 +42,25 @@ class PitchVisualizer:
         buf.seek(0)
         return buf
 
+    def _plot_players(self, ax, players: dict, color: str, label_prefix: str = ""):
+        for pid, pos in players.items():
+            if isinstance(pos, dict):
+                x, y = pos["x"], pos["y"]
+            else:
+                x, y = pos[0], pos[1]
+            ax.scatter(x, y, c=color, s=120, edgecolors="white",
+                       linewidths=1.5, zorder=5)
+            ax.annotate(f"{label_prefix}{pid}", (x, y), fontsize=7,
+                        ha="center", va="center", color="white",
+                        fontweight="bold", zorder=6)
+
     def plot_positions(self, team_a_players: dict, team_b_players: dict,
-                       ball_pos=None, figsize=(10, 7)):
+                       unassigned_players: dict = None, ball_pos=None, figsize=(10, 7)):
         fig, ax = self._get_fig_ax(figsize)
-
-        for pid, pos in team_a_players.items():
-            if isinstance(pos, dict):
-                x, y = pos["x"], pos["y"]
-            else:
-                x, y = pos[0], pos[1]
-
-            ax.scatter(x, y, c=TEAM_COLORS[0], s=120, edgecolors="white",
-                       linewidths=1.5, zorder=5)
-            ax.annotate(str(pid), (x, y), fontsize=7, ha="center", va="center",
-                        color="white", fontweight="bold", zorder=6)
-
-        for pid, pos in team_b_players.items():
-            if isinstance(pos, dict):
-                x, y = pos["x"], pos["y"]
-            else:
-                x, y = pos[0], pos[1]
-
-            ax.scatter(x, y, c=TEAM_COLORS[1], s=120, edgecolors="white",
-                       linewidths=1.5, zorder=5)
-            ax.annotate(str(pid), (x, y), fontsize=7, ha="center", va="center",
-                        color="white", fontweight="bold", zorder=6)
+        self._plot_players(ax, team_a_players, TEAM_COLORS[0])
+        self._plot_players(ax, team_b_players, TEAM_COLORS[1])
+        if unassigned_players:
+            self._plot_players(ax, unassigned_players, TEAM_COLORS[-1], "?")
 
         if ball_pos is not None:
             if isinstance(ball_pos, dict):
@@ -79,29 +72,36 @@ class PitchVisualizer:
 
         return self._to_image(fig)
 
-    def plot_heatmap(self, heatmap: np.ndarray, figsize=(10, 7)):
+    def plot_heatmap(self, positions: np.ndarray, figsize=(10, 7)):
         fig, ax = self._get_fig_ax(figsize)
+        if len(positions) < 3:
+            ax.text(0.5, 0.5, "Not enough data", ha="center", va="center",
+                    color="white", fontsize=12, transform=ax.transAxes)
+            return self._to_image(fig)
 
+        stats = self.pitch.bin_statistic(positions[:, 0], positions[:, 1])
         colors = [(0, 0, 0, 0), (1, 0, 0, 0.3), (1, 0, 0, 0.7), (1, 0, 0, 1)]
         cmap = LinearSegmentedColormap.from_list("heatmap", colors, N=256)
-
-        self.pitch.heatmap(heatmap, ax=ax, cmap=cmap, alpha=0.8)
-
+        self.pitch.heatmap(stats, ax=ax, cmap=cmap, alpha=0.8)
         return self._to_image(fig)
 
-    def plot_dual_heatmap(self, team_a_heatmap: np.ndarray, team_b_heatmap: np.ndarray,
+    def plot_dual_heatmap(self, team_a_positions: np.ndarray, team_b_positions: np.ndarray,
                           figsize=(10, 7)):
         fig, ax = self._get_fig_ax(figsize)
 
-        cmap_a = LinearSegmentedColormap.from_list(
-            "team_a", [(0, 0, 0, 0), (1, 0, 0, 0.8)], N=256
-        )
-        cmap_b = LinearSegmentedColormap.from_list(
-            "team_b", [(0, 0, 0, 0), (0, 0, 1, 0.8)], N=256
-        )
+        if len(team_a_positions) >= 3:
+            stats_a = self.pitch.bin_statistic(team_a_positions[:, 0], team_a_positions[:, 1])
+            cmap_a = LinearSegmentedColormap.from_list(
+                "team_a", [(0, 0, 0, 0), (1, 0, 0, 0.8)], N=256
+            )
+            self.pitch.heatmap(stats_a, ax=ax, cmap=cmap_a, alpha=0.6)
 
-        self.pitch.heatmap(team_a_heatmap, ax=ax, cmap=cmap_a, alpha=0.6)
-        self.pitch.heatmap(team_b_heatmap, ax=ax, cmap=cmap_b, alpha=0.6)
+        if len(team_b_positions) >= 3:
+            stats_b = self.pitch.bin_statistic(team_b_positions[:, 0], team_b_positions[:, 1])
+            cmap_b = LinearSegmentedColormap.from_list(
+                "team_b", [(0, 0, 0, 0), (0, 0, 1, 0.8)], N=256
+            )
+            self.pitch.heatmap(stats_b, ax=ax, cmap=cmap_b, alpha=0.6)
 
         return self._to_image(fig)
 
@@ -160,7 +160,7 @@ class PitchVisualizer:
     def plot_player_heatmap(self, player_positions: list, figsize=(10, 7)):
         fig, ax = self._get_fig_ax(figsize)
 
-        if player_positions:
+        if len(player_positions) >= 3:
             positions = np.array(player_positions)
             self.pitch.kdeplot(
                 positions[:, 0], positions[:, 1], ax=ax,

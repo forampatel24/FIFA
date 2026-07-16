@@ -146,7 +146,7 @@ class ProcessingPipeline:
                         "detection": det.to_dict(),
                     })
 
-                person_dets = [d for d in detections if d.class_name == "person"]
+                person_dets = [d for d in detections if d.class_name == "person" and d.height >= 40]
                 ball_dets = [d for d in detections if d.class_name == "ball"]
 
                 pitch_positions = {}

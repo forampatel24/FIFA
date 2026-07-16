@@ -289,8 +289,12 @@ def handle_tactical_pitch(results, pipeline):
                 ball_trail if show_ball else None,
             )
         else:
+            unassigned = {}
+            for pid, stats in results.get("player_stats", {}).items():
+                if stats["team"] == -1 and stats.get("positions"):
+                    unassigned[pid] = stats["positions"][-1]
             ball_pos = ball if show_ball else None
-            buf = viz.plot_positions(p0, p1, ball_pos)
+            buf = viz.plot_positions(p0, p1, unassigned, ball_pos)
 
         st.image(buf, use_container_width=True)
 
@@ -342,10 +346,9 @@ def handle_team_analysis(results):
             st.markdown("#### Team Heatmap")
             all_x = np.array([s["avg_position"]["x"] for s in team_a_stats.values()])
             all_y = np.array([s["avg_position"]["y"] for s in team_a_stats.values()])
-            if len(all_x) > 0:
+            if len(all_x) >= 3:
                 positions = np.column_stack([all_x, all_y])
-                heatmap = HeatmapGenerator().generate(positions)
-                buf = PitchVisualizer().plot_heatmap(heatmap)
+                buf = PitchVisualizer().plot_heatmap(positions)
                 st.image(buf, use_container_width=True)
 
     with col2:
@@ -374,10 +377,9 @@ def handle_team_analysis(results):
             st.markdown("#### Team Heatmap")
             all_x = np.array([s["avg_position"]["x"] for s in team_b_stats.values()])
             all_y = np.array([s["avg_position"]["y"] for s in team_b_stats.values()])
-            if len(all_x) > 0:
+            if len(all_x) >= 3:
                 positions = np.column_stack([all_x, all_y])
-                heatmap = HeatmapGenerator().generate(positions)
-                buf = PitchVisualizer().plot_heatmap(heatmap)
+                buf = PitchVisualizer().plot_heatmap(positions)
                 st.image(buf, use_container_width=True)
 
     st.markdown("### Comparison Chart")
@@ -494,9 +496,9 @@ def handle_player_analysis(results):
 
         with col1:
             st.markdown("#### Player Heatmap")
-            if positions:
-                heatmap = HeatmapGenerator().generate_player_heatmap(positions)
-                buf = PitchVisualizer().plot_heatmap(heatmap)
+            if len(positions) >= 3:
+                arr = np.array(positions)
+                buf = PitchVisualizer().plot_heatmap(arr)
                 st.image(buf, use_container_width=True)
 
         with col2:
