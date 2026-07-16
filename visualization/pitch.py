@@ -106,7 +106,8 @@ class PitchVisualizer:
         return self._to_image(fig)
 
     def plot_movement_trails(self, team_a_trails: dict, team_b_trails: dict,
-                             ball_trail: list = None, figsize=(10, 7)):
+                             ball_trail: list = None, unassigned_trails: dict = None,
+                             figsize=(10, 7)):
         fig, ax = self._get_fig_ax(figsize)
 
         for pid, trail in team_a_trails.items():
@@ -120,6 +121,13 @@ class PitchVisualizer:
                 xs = [p.get("x", p[0]) if isinstance(p, dict) else p[0] for p in trail]
                 ys = [p.get("y", p[1]) if isinstance(p, dict) else p[1] for p in trail]
                 ax.plot(xs, ys, color=TEAM_COLORS[1], alpha=0.4, linewidth=0.8)
+
+        if unassigned_trails:
+            for pid, trail in unassigned_trails.items():
+                if len(trail) > 1:
+                    xs = [p.get("x", p[0]) if isinstance(p, dict) else p[0] for p in trail]
+                    ys = [p.get("y", p[1]) if isinstance(p, dict) else p[1] for p in trail]
+                    ax.plot(xs, ys, color=TEAM_COLORS[-1], alpha=0.4, linewidth=0.8)
 
         if ball_trail and len(ball_trail) > 1:
             xs = [p.get("x", p[0]) if isinstance(p, dict) else p[0] for p in ball_trail]

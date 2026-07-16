@@ -303,7 +303,7 @@ class ProcessingPipeline:
 
         for team_id in list(self.player_positions.keys()):
             for pid, history in self.player_positions[team_id].items():
-                if not history:
+                if len(history) < 3:
                     continue
                 metrics = self.metrics_calculator.calculate_player_metrics(
                     {i: p for i, p in enumerate(history)}
@@ -363,6 +363,7 @@ class ProcessingPipeline:
     def get_frame_positions(self, frame_idx):
         p0 = {}
         p1 = {}
+        unassigned = {}
         ball = None
 
         for team_id in list(self.player_positions.keys()):
@@ -374,10 +375,12 @@ class ProcessingPipeline:
                         p0[pid] = {"x": float(pos[0]), "y": float(pos[1])}
                     elif team_id == 1:
                         p1[pid] = {"x": float(pos[0]), "y": float(pos[1])}
+                    else:
+                        unassigned[pid] = {"x": float(pos[0]), "y": float(pos[1])}
 
         for f_idx, pos in self.ball_positions:
             if f_idx == frame_idx:
                 ball = pos
                 break
 
-        return p0, p1, ball
+        return p0, p1, ball, unassigned

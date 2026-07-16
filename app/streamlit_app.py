@@ -265,19 +265,22 @@ def handle_tactical_pitch(results, pipeline):
             )
 
     with col1:
-        p0, p1, ball = pipeline.get_frame_positions(timeline_frame)
+        p0, p1, ball, unassigned = pipeline.get_frame_positions(timeline_frame)
 
         viz = PitchVisualizer()
 
         if show_trails:
             team_a_trails = {}
             team_b_trails = {}
+            unassigned_trails = {}
             for pid, stats in results.get("player_stats", {}).items():
                 trail = stats.get("positions", [])
                 if stats["team"] == 0 and len(trail) > 1:
                     team_a_trails[pid] = trail
                 elif stats["team"] == 1 and len(trail) > 1:
                     team_b_trails[pid] = trail
+                elif len(trail) > 1:
+                    unassigned_trails[pid] = trail
 
             ball_trail = []
             for f_idx, pos in results.get("ball_trajectory", []):
@@ -287,12 +290,9 @@ def handle_tactical_pitch(results, pipeline):
             buf = viz.plot_movement_trails(
                 team_a_trails, team_b_trails,
                 ball_trail if show_ball else None,
+                unassigned_trails if show_ball else None,
             )
         else:
-            unassigned = {}
-            for pid, stats in results.get("player_stats", {}).items():
-                if stats["team"] == -1 and stats.get("positions"):
-                    unassigned[pid] = stats["positions"][-1]
             ball_pos = ball if show_ball else None
             buf = viz.plot_positions(p0, p1, unassigned, ball_pos)
 

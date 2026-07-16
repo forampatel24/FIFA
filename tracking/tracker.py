@@ -9,11 +9,11 @@ from detection.detector import Detection
 
 
 class Tracker:
-    def __init__(self, track_activation_threshold: float = 0.3, lost_track_buffer: int = 30):
+    def __init__(self, track_activation_threshold: float = 0.5, lost_track_buffer: int = 90):
         self.tracker = SupervisionByteTrack(
             track_activation_threshold=track_activation_threshold,
             lost_track_buffer=lost_track_buffer,
-            minimum_matching_threshold=0.8,
+            minimum_matching_threshold=0.9,
         )
         self._next_uid = 1
         self._tracker_id_map = {}
